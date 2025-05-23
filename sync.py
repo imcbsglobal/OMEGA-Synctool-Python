@@ -126,37 +126,24 @@ def fetch_data(conn):
 
     data = {}
 
-    # Updated queries based on your Node.js sync service
+    # Queries to fetch table
     tables = [
-        ("acc_product", """
-            SELECT 
-                p.code, 
-                p.name, 
-                COALESCE(p.quantity, 0) + COALESCE(p.openingquantity, 0) AS quantity,
-                p.stockcatagory, 
-                p.unit, 
-                p.product, 
-                p.brand, 
-                p.billedcost
-            FROM 
-                acc_product p
-        """),
-        ("acc_invmast", """
-            SELECT 
-                invdate, 
-                slno
-            FROM 
-                acc_invmast
-        """),
-        ("acc_invdetails", """
-            SELECT 
-                invno, 
-                code, 
-                quantity
-            FROM 
-                acc_invdetails
-        """)
+        ("acc_product", 'SELECT "code", "name", COALESCE("quantity", 0) + COALESCE("openingquantity", 0) AS quantity, "stockcatagory", "unit", "product", "brand", "billedcost", "basicprice", "partqty" FROM "acc_product"'),
+        
+        ("acc_invmast", 'SELECT "invdate", "slno" FROM "acc_invmast"'),
+        
+        ("acc_invdetails", 'SELECT "invno", "code", "quantity" FROM "acc_invdetails"'),
+        
+        ("acc_purchasemaster", 'SELECT "slno", "date", "pdate" FROM "acc_purchasemaster"'),
+        
+        ("acc_purchasedetails", 'SELECT "billno", "code", "quantity" FROM "acc_purchasedetails"'),
+        
+        ("acc_production", 'SELECT "productionno", "date" FROM "acc_production"'),
+        
+        ("acc_productiondetails", 'SELECT "masterno", "code", "qty" FROM "acc_productiondetails"'),
     ]
+
+
 
     total_records = 0
 
@@ -188,11 +175,11 @@ def sync_data_to_api(data, config):
             'Content-Type': 'application/json'
         }
 
-        # API endpoint (based on your Node.js server)
+        # API endpoint 
         sync_endpoint = f"{api_base_url}/api/sync"
 
-        # Tables to sync (matching your Node.js table names)
-        tables_to_sync = ["acc_product", "acc_invmast", "acc_invdetails"]
+        # Tables to sync 
+        tables_to_sync = ["acc_product", "acc_invmast", "acc_invdetails", "acc_purchasemaster", "acc_purchasedetails", "acc_production", "acc_productiondetails"]
 
         print("📤 SYNCING DATA TO API")
         print("-" * 50)
