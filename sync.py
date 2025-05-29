@@ -131,11 +131,11 @@ def fetch_data(conn):
     tables = [
         ("acc_product", 'SELECT "code", "name", COALESCE("quantity", 0) + COALESCE("openingquantity", 0) AS quantity, "stockcatagory", "unit", "product", "brand", "billedcost", "basicprice", "partqty" FROM "acc_product"'),
         
-        ("acc_invmast", 'SELECT "invdate", "slno" FROM "acc_invmast"'),
+        ("acc_invmast", 'SELECT "invdate", "slno" FROM "acc_invmast" WHERE "billno" > 1'),
         
         ("acc_invdetails", 'SELECT "invno", "code", "quantity" FROM "acc_invdetails"'),
         
-        ("acc_purchasemaster", 'SELECT "slno", "date", "pdate" FROM "acc_purchasemaster"'),
+        ("acc_purchasemaster", 'SELECT "slno", "date", "pdate" FROM "acc_purchasemaster" WHERE "billno" > 1'),
         
         ("acc_purchasedetails", 'SELECT "billno", "code", "quantity" FROM "acc_purchasedetails"'),
         
