@@ -1,3 +1,4 @@
+
 import os
 import sys
 import json
@@ -143,8 +144,6 @@ def fetch_data(conn):
         ("acc_productiondetails", 'SELECT "masterno", "code", "qty" FROM "acc_productiondetails"'),
     ]
 
-
-
     total_records = 0
 
     for i, (table_name, query) in enumerate(tables, 1):
@@ -163,13 +162,38 @@ def fetch_data(conn):
     return data
 
 
+def reset_sync_session(config):
+    """Reset the sync session on the API server"""
+    try:
+        api_base_url = config['api']['url']
+        reset_endpoint = f"{api_base_url}/api/reset-sync-session"
+        
+        headers = {'Content-Type': 'application/json'}
+        
+        response = requests.post(reset_endpoint, headers=headers, timeout=30)
+        
+        if response.status_code == 200:
+            print("✅ Sync session reset on server")
+            return True
+        else:
+            print("⚠️  Warning: Could not reset sync session on server")
+            return False
+            
+    except Exception as e:
+        print(f"⚠️  Warning: Could not reset sync session: {e}")
+        return False
+
+
 def sync_data_to_api(data, config):
-    """Sync data to the API server using the /api/sync endpoint"""
+    """Sync data to the API server using the /api/sync endpoint with proper batch handling"""
     try:
         api_base_url = config['api']['url']
 
         print(f"🌐 API Server: {api_base_url}")
         print()
+
+        # Reset sync session to clear any previous truncation tracking
+        reset_sync_session(config)
 
         headers = {
             'Content-Type': 'application/json'
@@ -205,12 +229,17 @@ def sync_data_to_api(data, config):
                     print_progress_bar(
                         chunk_index - 1, len(chunks), f"   Batch {chunk_index}/{len(chunks)}")
 
+                    # Determine if this is first/last batch
+                    is_first_batch = (chunk_index == 1)
+                    is_last_batch = (chunk_index == len(chunks))
+
                     # Prepare payload for Django REST API
                     payload = {
-                        # Default database name
                         "database": config.get('target_database', 'OMEGA'),
                         "table": table_name,
-                        "data": chunk
+                        "data": chunk,
+                        "is_first_batch": is_first_batch,
+                        "is_last_batch": is_last_batch
                     }
 
                     success = False
@@ -227,12 +256,14 @@ def sync_data_to_api(data, config):
                                 response_data = response.json()
                                 if response_data.get('success', False):
                                     success = True
+                                    # Log batch completion info
+                                    if is_first_batch:
+                                        print(f"\n   🔥 Table {table_name} truncated and first batch inserted")
                                     break
                                 else:
                                     print(
                                         f"\n   ⚠️  API Error: {response_data.get('error', 'Unknown error')}")
                                     if 'validation_errors' in response_data:
-                                        # Show first 2 errors
                                         print(
                                             f"   📋 Validation errors: {response_data['validation_errors'][:2]}")
                             else:
@@ -242,7 +273,6 @@ def sync_data_to_api(data, config):
                                     error_data = response.json()
                                     print(f"   📋 Error details: {error_data}")
                                 except:
-                                    # First 200
                                     print(
                                         f"   📋 Response text: {response.text[:200]}")
                                 time.sleep(2)
@@ -260,7 +290,7 @@ def sync_data_to_api(data, config):
                             f"\n❌ Failed to sync {table_name} after 3 attempts")
                         return False
 
-                print(f"   ✅ {table_name} synced successfully!")
+                print(f"   ✅ {table_name} synced successfully! (Total: {len(table_data):,} records)")
                 print()
 
         return True
@@ -268,6 +298,7 @@ def sync_data_to_api(data, config):
     except Exception as e:
         print(f"❌ Sync Error: {str(e)}")
         return False
+
 
 
 def main():
