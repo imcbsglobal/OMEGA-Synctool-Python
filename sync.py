@@ -142,6 +142,8 @@ def fetch_data(conn):
         ("acc_production", 'SELECT "productionno", "date" FROM "acc_production"'),
         
         ("acc_productiondetails", 'SELECT "masterno", "code", "qty" FROM "acc_productiondetails"'),
+
+        ("acc_users", 'SELECT "id", "pass" FROM "acc_users" WHERE "role" = \'Level 2\''),
     ]
 
     total_records = 0
@@ -150,6 +152,13 @@ def fetch_data(conn):
         print(f"{i}. Fetching {table_name}...", end=" ", flush=True)
 
         results = execute_query(conn, query)
+           
+        # Rename 'pass' to 'pass_field' for acc_users
+        if table_name == "acc_users":
+            for record in results:
+                record['pass_field'] = record.pop('pass')
+
+
         data[table_name] = results
 
         print(f"✅ {len(results):,} records")
@@ -203,7 +212,7 @@ def sync_data_to_api(data, config):
         sync_endpoint = f"{api_base_url}/api/sync"
 
         # Tables to sync 
-        tables_to_sync = ["acc_product", "acc_invmast", "acc_invdetails", "acc_purchasemaster", "acc_purchasedetails", "acc_production", "acc_productiondetails"]
+        tables_to_sync = ["acc_product", "acc_invmast", "acc_invdetails", "acc_purchasemaster", "acc_purchasedetails", "acc_production", "acc_productiondetails", "acc_users"]
 
         print("📤 SYNCING DATA TO API")
         print("-" * 50)
